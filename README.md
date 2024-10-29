@@ -74,9 +74,6 @@ def mc_control (env, gamma = 1.0,
 ```
 
 ## OUTPUT:
-### Name: CHAITANYA P S
-### Register Number: 212222230024
-
 <img src = "https://github.com/user-attachments/assets/91325384-1e4e-404a-8770-8eadb23430b0" width="50%">
 
 ## RESULT:
