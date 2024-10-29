@@ -31,44 +31,54 @@ Developed By: CHAITANYA P S
 Register Number: 212222230024
 ```
 ```python
-from numpy.lib.function_base import select
-from collections import defaultdict
-def mc_control(env,
-              gamma=1.0, init_alpha=0.5, min_alpha=0.01, alpha_decay_ratio=0.5,
-              init_epsilon=1.0, min_epsilon=0.1, epsilon_decay_ratio=0.9,
-               n_episodes=3000, max_steps=200, first_visit=True):
+from tqdm import tqdm
+def mc_control (env, gamma = 1.0,
+                init_alpha = 0.5,min_alpha = 0.01, alpha_decay_ratio = 0.5,
+                init_epsilon = 1.0, min_epsilon = 0.1, epsilon_decay_ratio = 0.9,
+                n_episodes = 5500, max_steps = 300, first_visit = True):
 
     nS, nA = env.observation_space.n, env.action_space.n
-    Q = defaultdict(lambda: np.zeros(nA))
-    V = defaultdict(float)
-    pi = defaultdict(lambda: np.random.choice(nA))
-    Q_track = []
-    pi_track = []
-    select_action = lambda state , Q, epsilon:\
-    np.argmax(Q[state])\
-    if np.random.random() > epsilon\
-    else np.random.randint(len(Q[state]))
-    for episode in range(n_episodes):
-        epsilon = max(init_epsilon * (epsilon_decay_ratio ** episode), min_epsilon)
-        alpha = max(init_alpha * (alpha_decay_ratio ** episode), min_alpha)
-        trajectory = generate_trajectory(select_action, Q, epsilon, env, max_steps)
-        n = len(trajectory)
-        G = 0
-        for t in range(n - 1, -1, -1):
-            state, action, reward, _, _ = trajectory[t]
-            G = gamma * G + reward
-            if first_visit and (state, action) not in [(s, a) for s, a, _, _, _ in trajectory[:t]]:
-                Q[state][action] += alpha * (G - Q[state][action])
-                V[state] = np.max(Q[state])
-                pi[state] = np.argmax(Q[state])
-        Q_track.append(Q.copy())
-        pi_track.append(pi.copy)
+
+    disc = np.logspace(0, max_steps, num=max_steps, base=gamma, endpoint=False)
+
+    def decay_schedule(init_value, min_value, decay_ratio, n):
+        return np.maximum(min_value, init_value * (decay_ratio ** np.arange(n)))
+
+    alphas = decay_schedule(init_alpha, min_alpha, alpha_decay_ratio, n_episodes)
+    epsilons = decay_schedule(init_epsilon, min_epsilon, epsilon_decay_ratio, n_episodes)
+
+    Q = np.zeros((nS, nA), dtype=np.float64)
+    Q_track = np.zeros((n_episodes, nS, nA), dtype=np.float64)
+    def select_action(state, Q, epsilon):
+        return np.argmax(Q[state]) if np.random.random() > epsilon else np.random.randint(nA)
+
+    for e in tqdm(range(n_episodes), leave=False):
+        traj = generate_trajectory(select_action, Q, epsilons[e], env, max_steps)
+        visited = np.zeros((nS, nA), dtype=bool)
+
+        for t, (state, action, reward, _, _) in enumerate(traj):
+            if visited[state][action] and first_visit:
+                continue
+            visited[state][action] = True
+
+            n_steps = len(traj[t:])
+            G = np.sum(disc[:n_steps] * traj[t:, 2])
+            Q[state][action] = Q[state][action] + alphas[e] * (G - Q[state][action])
+
+        Q_track[e] = Q
+
+    V = np.max(Q, axis=1)
+    pi = {s: np.argmax(Q[s]) for s in range(nS)}
+
     return Q, V, pi
 ```
 
 ## OUTPUT:
+### Name: CHAITANYA P S
+### Register Number: 212222230024
 
-
+<img src = "https://github.com/user-attachments/assets/91325384-1e4e-404a-8770-8eadb23430b0" width="50%">
 
 ## RESULT:
+
 Monte Carlo Control successfully learned an optimal policy for the specified environment.
